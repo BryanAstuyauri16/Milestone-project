@@ -1,0 +1,88 @@
+---
+title: 'Milestone project'
+output: 
+  #pdf_document: default
+  html_document:
+    keep_md: yes
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+Importing the required libraries
+```{r}
+library(stringi)
+library(kableExtra)
+library(dplyr)
+library(ngram)
+library(plotly)
+```
+Importing the data
+```{r}
+blogs <- readLines("./final/en_US/en_US.blogs.txt")
+news <- readLines("./final/en_US/en_US.news.txt", skipNul = T, warn = F)
+twitter <- readLines("./final/en_US/en_US.twitter.txt", skipNul = T, warn = F)
+```
+Showing some general information about the files
+```{r}
+gen_stats <- data.frame(Size = sapply(list(blogs, news, twitter), function(x) {format(object.size(x), "MB")}),
+                                    t(rbind(sapply(list(blogs, news, twitter), stri_stats_general))), 
+                                    t(rbind(sapply(list(blogs, news, twitter), stri_stats_latex))))
+
+rownames(gen_stats) <- c("Blogs", "News", "Twitter")
+
+kable(gen_stats, 'html') %>% kable_styling(full_width = F)
+```
+Getting a sample from the data
+```{r}
+set.seed(123456)
+n <- 1000
+blog_sample <- sample(blogs, n)
+news_sample <- sample(news, n)
+twitter_sample <- sample(twitter, n)
+sample_data <- c(blog_sample, news_sample, twitter_sample)
+```
+Showing some general information about the sample
+```{r}
+sample_stats <- data.frame(Size = sapply(list(blog_sample, news_sample, twitter_sample, sample_data), function(x) {format(object.size(x), "MB")}),
+                            t(rbind(sapply(list(blog_sample, news_sample, twitter_sample, sample_data), stri_stats_general))), 
+                            t(rbind(sapply(list(blog_sample, news_sample, twitter_sample, sample_data), stri_stats_latex))))
+rownames(sample_stats) <- c("blog_sample", "news_sample", "twitter_sample", "sample_data")
+
+kable(sample_stats, 'html') %>% kable_styling(full_width = F)
+```
+Removing all the punctuation marks
+```{r}
+sample_data <- lapply(sample_data, preprocess, remove.punct = T)
+sample_data <- paste(sample_data, collapse = "")
+```
+Getting the first 4 n-grams for the sample
+```{r}
+unigram <- ngram(sample_data, n = 1) %>% get.phrasetable
+bigrams <- ngram(sample_data, n = 2) %>% get.phrasetable
+trigram <- ngram(sample_data, n = 3) %>% get.phrasetable
+fourgram <- ngram(sample_data, n = 4) %>% get.phrasetable
+```
+Plotting bar charts for the first 4 n-grams
+```{r}
+plot_ly(unigram[1:20,], x = ~ngrams, y = ~freq, color = I("dodgerblue3")) %>%
+  layout(xaxis = list(categoryorder = "total descending"))
+```
+```{r}
+plot_ly(bigrams[1:20,], x = ~ngrams, y = ~freq, color = I("darkgoldenrod2")) %>%
+  layout(xaxis = list(categoryorder = "total descending"))
+```
+```{r}
+plot_ly(trigram[1:20,], x = ~ngrams, y = ~freq, color = I("coral2")) %>%
+  layout(xaxis = list(categoryorder = "total descending"))
+```
+```{r}
+plot_ly(fourgram[1:20,], x = ~ngrams, y = ~freq, color = I("navajowhite2")) %>%
+  layout(xaxis = list(categoryorder = "total descending"))
+```
+
+## Conclusion
+After visualizing the tables for the sample datas we can 
+deduce that the most common n-gram has a very low frequency, this is,
+even the number of times a 1-gram is written in the data is small compared to the number of words.
